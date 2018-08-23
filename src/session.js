@@ -1,11 +1,13 @@
 /// fix session
 
 var events = require('events');
+var logger    = require('winston');
 
 var Fields = require('./fields');
 var Msg = require('./msg');
 var Msgs = require('./msgs');
 var RejectWithText = require('./errors').RejectWithText;
+var fs = require('fs');
 
 var Session = function(is_acceptor, opt) {
     var self = this;
@@ -18,6 +20,7 @@ var Session = function(is_acceptor, opt) {
 
     self.sender_comp_id = opt.sender;
     self.target_comp_id = opt.target;
+    self.path           = opt.path;
 
     // incoming messages need to be processed in the order they are received
     self.msg_queue = [];
@@ -213,6 +216,8 @@ Session.prototype.reject = function(orig_msg, reason, field) {
 Session.prototype.incoming = function(msg) {
     var self = this;
 
+    logger.info('Incoming message from Bitstamp FIX', {msg: msg});
+
     if (self._stopped) {
         return;
     }
@@ -304,6 +309,7 @@ Session.prototype.incoming = function(msg) {
             }
 
             // next message handler
+            self.save_file();
             next();
         });
     })();
@@ -313,6 +319,11 @@ Session.prototype._process_incoming = function(msg, cb) {
     var self = this;
 
     self.last_timestamp = Date.now();
+
+    if (!self.is_logged_in && msg.MsgType === 'A')
+    {
+        self.is_logged_in = true;
+    }
 
     // first message should always be a logon
     if (!self.is_logged_in && msg.MsgType !== 'A') {
@@ -339,7 +350,7 @@ Session.prototype._process_incoming = function(msg, cb) {
 
         // request resend
         var resend_request = new Msgs.ResendRequest();
-        resend_request.BeginSeqNo = self.incomingSeqNum;
+        resend_request.BeginSeqNo = self.incoming_seq_num;
         resend_request.EndSeqNo = 0;
         return cb(resend_request);
     } else if (msg_seq_num < self.incoming_seq_num) {
@@ -371,6 +382,8 @@ Session.prototype._process_incoming = function(msg, cb) {
 Session.prototype.send = function(msg, keep_set_fields) {
     var self = this;
 
+    logger.info('Outgoing message to Bitstamp FIX', {msg: msg});
+
     // set session specific headers
     msg.SenderCompID = self.sender_comp_id;
     msg.TargetCompID = self.target_comp_id;
@@ -384,11 +397,13 @@ Session.prototype.send = function(msg, keep_set_fields) {
     // increment the next outgoing
     msg.MsgSeqNum = self.outgoing_seq_num++;
 
+    self.save_file();
+
     self.emit('send', msg);
 };
 
-/// logon to a client session
-/// 'logon' event fired when session is active
+// logon to a client session
+// 'logon' event fired when session is active
 Session.prototype.logon = function(additional_fields) {
     var self = this;
     var msg = new Msgs.Logon();
@@ -434,5 +449,20 @@ Session.prototype.end = function() {
     self.emit('end');
     self.removeAllListeners('end'); // avoid duplicate 'end' events
 };
+
+/// save last_outgoing_message and last_incoming_message to file
+Session.prototype.save_file = function() {
+    var self = this;
+
+    let in_out_values = {incoming: self.incoming_seq_num, outgoing: self.outgoing_seq_num};
+
+    fs.writeFile(self.path, JSON.stringify(in_out_values), function(err) {
+        if(err) {
+            return console.log(err);
+        }
+        // saved to file
+    });
+
+}
 
 module.exports = Session;

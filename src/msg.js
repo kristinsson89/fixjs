@@ -79,7 +79,7 @@ Msg.prototype.serialize = function() {
     var bodymsg = body_arr.join(Msg.kFieldSeparator);
 
     var out = [];
-    out.push('8=' + 'FIX.4.2'); // TODO variable
+    out.push('8=' + 'FIX.4.4'); // TODO variable
 
     // if there is no body, then only one separator will be added
     // if there is a body, then there will be another separator
@@ -105,6 +105,7 @@ Msg.checksum = function(str) {
     for (var i = 0; i < str.length; ++i) {
         chksm += str.charCodeAt(i);
     }
+
 
     chksm = chksm % 256;
 
