@@ -1,7 +1,6 @@
 /// fix session
 
 var events = require('events');
-var logger    = require('winston');
 
 var Fields = require('./fields');
 var Msg = require('./msg');
@@ -216,7 +215,7 @@ Session.prototype.reject = function(orig_msg, reason, field) {
 Session.prototype.incoming = function(msg) {
     var self = this;
 
-    logger.info('Incoming message from Bitstamp FIX', {msg: msg});
+    if (self.message_logger) self.message_logger(msg, true); //True if incoming
 
     if (self._stopped) {
         return;
@@ -382,7 +381,7 @@ Session.prototype._process_incoming = function(msg, cb) {
 Session.prototype.send = function(msg, keep_set_fields) {
     var self = this;
 
-    logger.info('Outgoing message to Bitstamp FIX', {msg: msg});
+    if (self.message_logger) self.message_logger(msg, false); //True if incoming
 
     // set session specific headers
     msg.SenderCompID = self.sender_comp_id;
