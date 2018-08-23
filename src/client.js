@@ -36,7 +36,7 @@ var Client = function(stream, opt) {
 Client.prototype.__proto__ = events.EventEmitter.prototype;
 
 // create a new session, the session is in a non-logged on state
-Client.prototype.session = function(sender_comp_id, target_comp_id) {
+Client.prototype.session = function(sender_comp_id, target_comp_id, path) {
     var self = this;
     var sessions = self.sessions;
     var stream = self.stream;
@@ -46,6 +46,7 @@ Client.prototype.session = function(sender_comp_id, target_comp_id) {
     var session = new Session(false, {
         sender: sender_comp_id,
         target: target_comp_id,
+        path: path,
     });
 
     var session_id = target_comp_id;
