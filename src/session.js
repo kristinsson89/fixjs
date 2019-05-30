@@ -124,7 +124,7 @@ var Session = function(is_acceptor, opt) {
         // TODO, currently just sends a sequence reset
         var seq_reset = new Msgs.SequenceReset();
         seq_reset.GapFillFlag = 'N';
-        seq_reset.NewSeqNo = msg.EndSeqNo == '0' ? self.outgoing_seq_num : msg.EndSeqNo;
+        seq_reset.NewSeqNo = msg.EndSeqNo == '0' ? self.outgoing_seq_num + 1 : msg.EndSeqNo;
         return next(seq_reset);
     };
 
